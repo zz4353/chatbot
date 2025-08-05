@@ -1,0 +1,14 @@
+# Qdrant
+QDRANT_HOST = 127.0.0.1
+QDRANT_PORT = 6333
+QDRANT_TIMEOUT = 6000
+
+
+# Embedding models
+DENSE_MODEL = intfloat/multilingual-e5-base
+SPARSE_MODEL = Qdrant/bm25
+
+
+# Ollama
+OLLAMA_BASE_URL = http://localhost:11434
+OLLAMA_MODEL = qwen2.5:7b

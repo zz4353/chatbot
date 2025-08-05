@@ -1,8 +1,10 @@
+import os
+from dotenv import load_dotenv
 from langchain_ollama import OllamaLLM 
 
+load_dotenv()
 
-OLLAMA_BASE_URL = "http://localhost:11434"
-model = OllamaLLM(model="qwen2.5:7b", base_url=OLLAMA_BASE_URL, temperature=0, reasoning=False)
+model = OllamaLLM(model=os.getenv("OLLAMA_MODEL"), base_url=os.getenv("OLLAMA_BASE_URL"), temperature=0, reasoning=False)
 
 
 def ask_ollama(prompt):
