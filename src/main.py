@@ -1,9 +1,9 @@
-from index_data import Vector_Store
+from index_data import VectorStore
 from chat import ask_llm_stream
 
 
 def main():
-    vector_store = Vector_Store()
+    vector_store = VectorStore()
     vector_store.index_data(path="data")
     while True:
         question = input("Enter your question (or 'exit' to quit): ")

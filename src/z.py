@@ -1,11 +1,11 @@
 import pandas as pd
-from index_data import Vector_Store
+from index_data import VectorStore
 from chat import ask_llm
 from utils import render_prompt
 
 
 def main():
-    vector_store = Vector_Store()
+    vector_store = VectorStore()
     vector_store.index_data(path="data")
 
     # đọc file xlxs

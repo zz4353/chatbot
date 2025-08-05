@@ -2,6 +2,7 @@ import os
 import re
 import hashlib
 from markitdown import MarkItDown
+import numpy as np
 from jinja2 import Template
 from underthesea import word_tokenize
 
@@ -86,6 +87,21 @@ def preprocess_text(text):
     tokens = [word.replace(' ', '_') for word in tokens if word not in stop_word]
     return ' '.join(tokens)
 
+
+def normalize(scores):
+    scores = np.array(scores, dtype=np.float32)
+    mean = scores.mean()
+    std = scores.std()
+
+    lower = mean - 3 * std
+    upper = mean + 3 * std
+
+    if upper == lower:
+        return np.ones_like(scores) * 0.5
+
+    normalized = (scores - lower) / (upper - lower)
+    normalized = np.clip(normalized, 0, 1)
+    return normalized.tolist()
 
 if __name__ == "__main__":
     print(preprocess_text("Xin chào, tôi là một trợ lý ảo!"))
