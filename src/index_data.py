@@ -141,14 +141,7 @@ class VectorStore:
     
     def search_dense(self, query, top_k=3, threshold=0.3):
         results = self._search_dense(query, top_k)
-        final_results = []
-        for point in results:
-            if point.score >= threshold:
-                final_results.append(Document(
-                    page_content=point.payload['content'],
-                    metadata={"score": point.score, "id": point.id}
-                ))
-        return sorted(final_results, key=lambda d: d.metadata["score"], reverse=True)
+        return [point for point in results if point.score >= threshold]
     
     def _search_sparse(self, query, top_k):
         query = preprocess_text(query)
@@ -170,15 +163,7 @@ class VectorStore:
     
     def search_sparse(self, query, top_k=3, threshold=0.3):
         results = self._search_sparse(query, top_k)
-        final_results = []
-        for point in results:
-            if point.score >= threshold:
-                final_results.append(Document(
-                    page_content=point.payload['content'],
-                    metadata={"score": point.score, "id": point.id}
-                ))
-        return sorted(final_results, key=lambda d: d.metadata["score"], reverse=True)
-
+        return [point for point in results if point.score >= threshold]
 
     def hybrid_search(self, query, top_k=3, threshold=0.3, alpha=0.7):
         dense_results = self._search_dense(query, top_k * 3 + 1)
@@ -191,30 +176,35 @@ class VectorStore:
         for i, point in enumerate(sparse_results):
             point.score = sparse_scores[i]
 
-        combined = defaultdict(lambda: {"payload": "", "dense": 0.0, "sparse": 0.0})
-        for p in dense_results:
-            combined[p.id]["payload"] = p.payload['content']
-            combined[p.id]["dense"] = p.score
-
+        combined = defaultdict(lambda: {"payload": None, "dense": 0.0, "sparse": 0.0})
         for p in sparse_results:
-            combined[p.id]["payload"] = p.payload['content']
+            combined[p.id]["point"] = p
             combined[p.id]["sparse"] = p.score
+
+        for p in dense_results:
+            combined[p.id]["point"] = p
+            combined[p.id]["dense"] = p.score
 
         final = []
         for id_, entry in combined.items():
             score = alpha * entry["dense"] + (1 - alpha) * entry["sparse"]
             if score >= threshold:
-                final.append(Document(
-                    page_content=entry["payload"],
-                    metadata={"score": score, "id": id_}
-                ))
+                entry['point'].score = score
+                final.append(entry["point"])
 
-        final = sorted(final, key=lambda d: d.metadata["score"], reverse=True)[:top_k]
+        final = sorted(final, key=lambda d: d.score, reverse=True)[:top_k]
         return final
 
     def search(self, query, top_k=3, threshold=0.3):
-        return self.hybrid_search(query, top_k, threshold)
+        docs = []
+        results = self.hybrid_search(query, top_k, threshold)
+        for point in results:
+            docs.append(Document(
+                page_content=point.payload["content"],
+                metadata={"score": point.score, "id": point.id}
+            ))
 
+        return docs
 
 if __name__ == "__main__":
     vector_store = VectorStore()
@@ -237,4 +227,7 @@ if __name__ == "__main__":
     print(type(results))
     print(results)
 
+    print("================================================================")
+    results = vector_store.search(query=question, top_k=3, threshold=0.3)
+    print(results)
     
