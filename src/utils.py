@@ -45,25 +45,6 @@ def load_file_as_markdown(path: str) -> str:
     else:
         raise ValueError(f"Unsupported file type: {path}")
 
-def has_hash_changed(path: str) -> bool:
-    # Hash toàn bộ thư mục data
-    old_hash = ""
-    old_hash_file = os.path.join(path, "hash.hsh")
-    if os.path.exists(old_hash_file):
-        with open(old_hash_file, "r") as f:
-            old_hash = f.read().strip()
-
-    hash = hash_directory(path, "hash.hsh")
-
-    if old_hash == hash:
-        return False
-
-    with open(old_hash_file, "w") as f:
-        f.write(hash)
-
-    return True
-
-
 def render_prompt(template_path, docs, question):
     with open(template_path, "r", encoding="utf-8") as f:
         template_str = f.read()
