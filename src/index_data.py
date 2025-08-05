@@ -101,19 +101,6 @@ class VectorStore:
 
             dense_embeddings, sparse_embeddings = self._embed_contents(chunk_contents)
 
-            # points = [
-            #     PointStruct(
-            #         id= str(uuid.uuid4()),
-            #         vector={
-            #             "dense_vector" : dense_embeddings[i].tolist(),
-            #             "sparse_vector" : sparse_embeddings[i].as_object(),
-            #         },
-            #         payload={"content": chunk_contents[i]},
-            #     )
-            #     for i in range(len(chunk_contents))
-            # ]
-
-            # self._upsert_data(points)
             self.insert_data(
                 dense_embeddings=dense_embeddings,
                 sparse_embeddings=sparse_embeddings,
