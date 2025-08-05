@@ -6,7 +6,7 @@ from utils import render_prompt
 
 def main():
     vector_store = VectorStore()
-    vector_store.index_data(path="data")
+    vector_store.load_and_index_data(path="data")
 
     # đọc file xlxs
     df = pd.read_excel("data/test_question.xlsx")

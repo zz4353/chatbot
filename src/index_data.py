@@ -87,7 +87,7 @@ class VectorStore:
             print(f"Upserted batch {i // BATCH_SIZE + 1} of {len(points) // BATCH_SIZE + 1}")
 
 
-    def index_data(self, path):
+    def load_and_index_data(self, path):
         if QDRANT_CLIENT.collection_exists(self.collection_name):
             QDRANT_CLIENT.delete_collection(self.collection_name)
 
@@ -101,7 +101,7 @@ class VectorStore:
 
             dense_embeddings, sparse_embeddings = self._embed_contents(chunk_contents)
 
-            self.insert_data(
+            self.upsert_data(
                 dense_embeddings=dense_embeddings,
                 sparse_embeddings=sparse_embeddings,
                 payload_keys=["content"],
@@ -110,7 +110,7 @@ class VectorStore:
         
         self.enable_hnsw_indexing()
 
-    def insert_data(self, dense_embeddings, sparse_embeddings, payload_keys, payload_values):
+    def upsert_data(self, dense_embeddings, sparse_embeddings, payload_keys, payload_values):
         points=[
             PointStruct(
                 id=str(uuid.uuid4()),
@@ -208,7 +208,7 @@ class VectorStore:
 
 if __name__ == "__main__":
     vector_store = VectorStore()
-    # index_data = vector_store.index_data(path="data")
+    # index_data = vector_store.load_and_index_data(path="data")
     vector_store.enable_hnsw_indexing()
 
     question = "chứng khoán là gì?"
