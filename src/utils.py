@@ -1,7 +1,7 @@
 import os
 import re
 import hashlib
-from markitdown import MarkItDown
+from docling.document_converter import DocumentConverter
 import numpy as np
 from jinja2 import Template
 from underthesea import word_tokenize
@@ -44,15 +44,25 @@ def get_files_in_directory(path):
 
     return files
 
-def convert_to_markdown(path: str) -> str:
-    # Khởi tạo converter
-    converter = MarkItDown()
-
-    # Chuyển file sang markdown
+def load_pdf_file_as_markdown(path: str) -> str:
+    converter = DocumentConverter()
     result = converter.convert(path)
+    return result.document.export_to_markdown()
 
-    return result.markdown
+def load_txt_file_as_markdown(path: str) -> str:
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+    return content
 
+def load_file_as_markdown(path: str) -> str:
+    if path.endswith(".pdf"):
+        return load_pdf_file_as_markdown(path)
+    elif path.endswith(".docx"):
+        return load_pdf_file_as_markdown(path)
+    elif path.endswith(".txt"):
+        return load_txt_file_as_markdown(path)
+    else:
+        raise ValueError(f"Unsupported file type: {path}")
 
 def has_hash_changed(path: str) -> bool:
     # Hash toàn bộ thư mục data

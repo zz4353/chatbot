@@ -31,13 +31,13 @@ class VectorStore:
         self.sparse_embedding_model = SparseTextEmbedding(sparse_model_name, cache_dir="models",
                                                           cuda=(self.device != "cpu"))
 
-        if not any(c.name == collection_name for c in QDRANT_CLIENT.get_collections().collections):
-            self.recreate_collection()
+        if not QDRANT_CLIENT.collection_exists(self.collection_name):
+            self.create_collection()
 
-    def recreate_collection(self):
+    def create_collection(self):
         dense_dim = self.dense_embedding_model.encode("test").shape[0]
 
-        QDRANT_CLIENT.recreate_collection(
+        QDRANT_CLIENT.create_collection(
             collection_name=self.collection_name,
             vectors_config={
                 "dense_vector": VectorParams(
@@ -88,18 +88,19 @@ class VectorStore:
 
 
     def index_data(self, path):
-        self.recreate_collection()
+        if QDRANT_CLIENT.collection_exists(self.collection_name):
+            QDRANT_CLIENT.delete_collection(self.collection_name)
+
+        self.create_collection()
 
         print(f"Indexing data from {path}...")
         files = get_files_in_directory(path)
         
         for path in files:
             chunk_contents = load_documents_from_path(path)
-            
-            # embedding 
+
             dense_embeddings, sparse_embeddings = self._embed_contents(chunk_contents)
 
-            # Tạo danh sách PointStruct để upsert vào Qdrant
             points = [
                 PointStruct(
                     id= str(uuid.uuid4()),
@@ -107,7 +108,7 @@ class VectorStore:
                         "dense_vector" : dense_embeddings[i].tolist(),
                         "sparse_vector" : sparse_embeddings[i].as_object(),
                     },
-                    payload={"text": chunk_contents[i]},
+                    payload={"content": chunk_contents[i]},
                 )
                 for i in range(len(chunk_contents))
             ]
@@ -135,10 +136,10 @@ class VectorStore:
         for point in results:
             if point.score >= threshold:
                 final_results.append(Document(
-                    page_content=point.payload["text"],
+                    page_content=point.payload['content'],
                     metadata={"score": point.score, "id": point.id}
                 ))
-        return sorted(final_results, key=lambda d: d.metadata["score"], reverse=True)[:top_k]
+        return sorted(final_results, key=lambda d: d.metadata["score"], reverse=True)
     
     def _search_sparse(self, query, top_k):
         query = preprocess_text(query)
@@ -157,26 +158,37 @@ class VectorStore:
             limit=top_k,
         )
         return results.points
+    
+    def search_sparse(self, query, top_k=3, threshold=0.3):
+        results = self._search_sparse(query, top_k)
+        final_results = []
+        for point in results:
+            if point.score >= threshold:
+                final_results.append(Document(
+                    page_content=point.payload['content'],
+                    metadata={"score": point.score, "id": point.id}
+                ))
+        return sorted(final_results, key=lambda d: d.metadata["score"], reverse=True)
 
 
-    def _hybrid_search(self, query, top_k=3, threshold=0.3, alpha=0.7):
-        dense_results = self._search_dense(query, top_k * 3)
+    def hybrid_search(self, query, top_k=3, threshold=0.3, alpha=0.7):
+        dense_results = self._search_dense(query, top_k * 3 + 1)
         dense_scores = normalize([point.score for point in dense_results])
         for i, point in enumerate(dense_results):
             point.score = dense_scores[i]
 
-        sparse_results = self._search_sparse(query, top_k * 3)
+        sparse_results = self._search_sparse(query, top_k * 3 + 1)
         sparse_scores = normalize([point.score for point in sparse_results])
         for i, point in enumerate(sparse_results):
             point.score = sparse_scores[i]
 
-        combined = defaultdict(lambda: {"text": "", "dense": 0.0, "sparse": 0.0})
+        combined = defaultdict(lambda: {"payload": "", "dense": 0.0, "sparse": 0.0})
         for p in dense_results:
-            combined[p.id]["text"] = p.payload["text"]
+            combined[p.id]["payload"] = p.payload['content']
             combined[p.id]["dense"] = p.score
 
         for p in sparse_results:
-            combined[p.id]["text"] = p.payload["text"]
+            combined[p.id]["payload"] = p.payload['content']
             combined[p.id]["sparse"] = p.score
 
         final = []
@@ -184,7 +196,7 @@ class VectorStore:
             score = alpha * entry["dense"] + (1 - alpha) * entry["sparse"]
             if score >= threshold:
                 final.append(Document(
-                    page_content=entry["text"],
+                    page_content=entry["payload"],
                     metadata={"score": score, "id": id_}
                 ))
 
@@ -192,30 +204,27 @@ class VectorStore:
         return final
 
     def search(self, query, top_k=3, threshold=0.3):
-        return self._hybrid_search(query, top_k, threshold)
+        return self.hybrid_search(query, top_k, threshold)
 
 
 if __name__ == "__main__":
     vector_store = VectorStore()
-    vector_store.enable_hnsw_indexing()
     # index_data = vector_store.index_data(path="data")
+    vector_store.enable_hnsw_indexing()
 
     question = "chứng khoán là gì?"
 
-    # results = vector_store.search(query=question, top_k=3)
-    # for p in results:
-    #     print(p)
-    results = vector_store._hybrid_search(question, top_k=3, threshold=0.3)
+    results = vector_store.hybrid_search(question, top_k=3, threshold=0.3)
     print(results)
     print("================================================================")
 
 
-    results = vector_store._search_dense(query=question, top_k=3)
+    results = vector_store.search_dense(query=question, top_k=3)
     print(results)
 
     print("================================================================")
 
-    results = vector_store._search_sparse(query=question, top_k=3)
+    results = vector_store.search_sparse(query=question, top_k=3)
     print(type(results))
     print(results)
 
