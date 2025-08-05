@@ -101,21 +101,43 @@ class VectorStore:
 
             dense_embeddings, sparse_embeddings = self._embed_contents(chunk_contents)
 
-            points = [
-                PointStruct(
-                    id= str(uuid.uuid4()),
-                    vector={
-                        "dense_vector" : dense_embeddings[i].tolist(),
-                        "sparse_vector" : sparse_embeddings[i].as_object(),
-                    },
-                    payload={"content": chunk_contents[i]},
-                )
-                for i in range(len(chunk_contents))
-            ]
+            # points = [
+            #     PointStruct(
+            #         id= str(uuid.uuid4()),
+            #         vector={
+            #             "dense_vector" : dense_embeddings[i].tolist(),
+            #             "sparse_vector" : sparse_embeddings[i].as_object(),
+            #         },
+            #         payload={"content": chunk_contents[i]},
+            #     )
+            #     for i in range(len(chunk_contents))
+            # ]
 
-            self._upsert_data(points)
+            # self._upsert_data(points)
+            self.insert_data(
+                dense_embeddings=dense_embeddings,
+                sparse_embeddings=sparse_embeddings,
+                payload_keys=["content"],
+                payload_values=chunk_contents
+            )
         
         self.enable_hnsw_indexing()
+
+    def insert_data(self, dense_embeddings, sparse_embeddings, payload_keys, payload_values):
+        points=[
+            PointStruct(
+                id=str(uuid.uuid4()),
+                vector={
+                    "dense_vector": dense_embeddings[i].tolist(),
+                    "sparse_vector": sparse_embeddings[i].as_object(),
+                },
+                payload=dict(zip(payload_keys, payload_values[i] if isinstance(payload_values[i], list) else [payload_values[i]]))
+            )
+            for i in range(len(dense_embeddings))
+        ]
+
+        self._upsert_data(points)
+
 
     def _search_dense(self, query, top_k):
         query_vector = self.dense_embedding_model.encode([query])[0]
