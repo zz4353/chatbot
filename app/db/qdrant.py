@@ -7,7 +7,6 @@ from qdrant_client.models import VectorParams, Distance, PointStruct, SparseVect
 from qdrant_client.models import SparseVector, HnswConfigDiff
 from qdrant_client.models import SparseIndexParams
 from app.db._utils import normalize
-from app.db.embedding_models import dense_model, sparse_model
 
 load_dotenv() 
 
@@ -15,7 +14,7 @@ QDRANT_CLIENT = QdrantClient(host=os.getenv("QDRANT_HOST"), port=os.getenv("QDRA
                              timeout=int(os.getenv("QDRANT_TIMEOUT")))
 
 class VectorStore:
-    def __init__(self, collection_name, dense_model=dense_model, sparse_model=sparse_model):
+    def __init__(self, collection_name, dense_model, sparse_model):
         self.collection_name = collection_name
         self.dense_embedding_model = dense_model
         self.sparse_embedding_model = sparse_model
