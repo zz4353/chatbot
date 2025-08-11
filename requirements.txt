@@ -1,0 +1,12 @@
+# python 3.10
+
+langchain
+langchain-ollama
+sentence-transformers
+qdrant-client
+fastembed
+numpy
+jinja2
+underthesea
+docling
+tiktoken

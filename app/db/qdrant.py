@@ -1,47 +1,37 @@
 import os
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
+from collections import defaultdict
+import uuid
+from langchain.schema import Document
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct, SparseVectorParams
 from qdrant_client.models import SparseVector, HnswConfigDiff
-from utils import get_files_in_directory, normalize
-from langchain.schema import Document
-import uuid
-import torch
-from fastembed import SparseTextEmbedding
-from utils import preprocess_text
-from collections import defaultdict
 from qdrant_client.models import SparseIndexParams
-from file_utils import load_documents_from_path
+from app.db.utils import normalize
+from app.db.models import dense_model, sparse_model
 
 load_dotenv() 
 
 QDRANT_CLIENT = QdrantClient(host=os.getenv("QDRANT_HOST"), port=os.getenv("QDRANT_PORT"), 
                              timeout=int(os.getenv("QDRANT_TIMEOUT")))
 DEFAULT_COLLECTION_NAME = "local_store"
-DENSE_MODEL = os.getenv("DENSE_MODEL")
-SPARSE_MODEL = os.getenv("SPARSE_MODEL")
 
 class VectorStore:
-    def __init__(self, collection_name=DEFAULT_COLLECTION_NAME, dense_model_name=DENSE_MODEL, sparse_model_name=SPARSE_MODEL, device="cpu"):
+    def __init__(self, collection_name=DEFAULT_COLLECTION_NAME, dense_model=dense_model, sparse_model=sparse_model, device="cpu"):
         self.collection_name = collection_name
         self.device = device
-        self.dense_embedding_model = SentenceTransformer(dense_model_name, cache_folder="models")
-        self.dense_embedding_model.to(torch.device(self.device))
-        self.sparse_embedding_model = SparseTextEmbedding(sparse_model_name, cache_dir="models",
-                                                          cuda=(self.device != "cpu"))
+        self.dense_embedding_model = dense_model
+        self.sparse_embedding_model = sparse_model
 
         if not QDRANT_CLIENT.collection_exists(self.collection_name):
             self.create_collection()
 
     def create_collection(self):
-        dense_dim = self.dense_embedding_model.encode("test").shape[0]
-
         QDRANT_CLIENT.create_collection(
             collection_name=self.collection_name,
             vectors_config={
                 "dense_vector": VectorParams(
-                    size=dense_dim,
+                    size=self.dense_embedding_model.get_dimension(),
                     distance=Distance.COSINE,
                 )
             },
@@ -53,15 +43,23 @@ class VectorStore:
             },
 
             hnsw_config=HnswConfigDiff(
-                m=0,
+                m=16,
             ),
         ) 
 
-    def enable_hnsw_indexing(self):
+    def _enable_hnsw_indexing(self):
         QDRANT_CLIENT.update_collection(
             collection_name=self.collection_name,
             hnsw_config=HnswConfigDiff(
                 m=16,
+            ),
+        ) 
+
+    def _disable_hnsw_indexing(self):
+        QDRANT_CLIENT.update_collection(
+            collection_name=self.collection_name,
+            hnsw_config=HnswConfigDiff(
+                m=0,
             ),
         ) 
 
@@ -70,9 +68,7 @@ class VectorStore:
 
     def _embed_contents(self, chunk_contents):
         dense_embeddings = self.dense_embedding_model.encode(chunk_contents)
-
-        chunk_contents = [preprocess_text(content) for content in chunk_contents]
-        sparse_embeddings = list(self.sparse_embedding_model.passage_embed(chunk_contents))
+        sparse_embeddings = self.sparse_embedding_model.passage_embed(chunk_contents)
 
         return dense_embeddings, sparse_embeddings
         
@@ -86,37 +82,38 @@ class VectorStore:
             )
             print(f"Upserted batch {i // BATCH_SIZE + 1} of {len(points) // BATCH_SIZE + 1}")
 
-
-    def load_and_index_data(self, path):
-        if QDRANT_CLIENT.collection_exists(self.collection_name):
-            QDRANT_CLIENT.delete_collection(self.collection_name)
-
-        self.create_collection()
-
-        print(f"Indexing data from {path}...")
-        files = get_files_in_directory(path)
+    def insert_data(self, payload_keys, payload_values, embedding_indices=[0]):
+        if not payload_values:
+            return
         
-        for path in files:
-            chunk_contents = load_documents_from_path(path)
+        if isinstance(payload_values[0], str):
+            contents = payload_values
+        elif isinstance(payload_values[0], list):
+            contents = [
+                "\n".join(str(v[i]) for i in embedding_indices)
+                for v in payload_values
+            ]
+        else:
+            raise ValueError("Unsupported payload_values format")
 
-            dense_embeddings, sparse_embeddings = self._embed_contents(chunk_contents)
+        dense_embeddings, sparse_embeddings = self._embed_contents(contents)
 
-            self.upsert_data(
+        self._disable_hnsw_indexing()
+        self.upsert_data(
                 dense_embeddings=dense_embeddings,
                 sparse_embeddings=sparse_embeddings,
-                payload_keys=["content"],
-                payload_values=chunk_contents
+                payload_keys=payload_keys,
+                payload_values=payload_values
             )
-        
-        self.enable_hnsw_indexing()
+        self._enable_hnsw_indexing()
 
     def upsert_data(self, dense_embeddings, sparse_embeddings, payload_keys, payload_values):
         points=[
             PointStruct(
                 id=str(uuid.uuid4()),
                 vector={
-                    "dense_vector": dense_embeddings[i].tolist(),
-                    "sparse_vector": sparse_embeddings[i].as_object(),
+                    "dense_vector": dense_embeddings[i],
+                    "sparse_vector": sparse_embeddings[i],
                 },
                 payload=dict(zip(payload_keys, payload_values[i] if isinstance(payload_values[i], list) else [payload_values[i]]))
             )
@@ -125,13 +122,12 @@ class VectorStore:
 
         self._upsert_data(points)
 
-
     def _search_dense(self, query, top_k):
-        query_vector = self.dense_embedding_model.encode([query])[0]
+        query_vector = self.dense_embedding_model.encode(query)
     
         results = QDRANT_CLIENT.query_points(
             collection_name=self.collection_name,
-            query=query_vector.tolist(),  
+            query=query_vector,  
             using="dense_vector",  
             with_payload=True,
             limit=top_k,
@@ -144,8 +140,7 @@ class VectorStore:
         return [point for point in results if point.score >= threshold]
     
     def _search_sparse(self, query, top_k):
-        query = preprocess_text(query)
-        sparse_vector_dict = next(self.sparse_embedding_model.passage_embed([query])).as_object()
+        sparse_vector_dict = self.sparse_embedding_model.passage_embed(query)
 
         sparse_vector = SparseVector(
             indices=sparse_vector_dict["indices"],
@@ -205,29 +200,4 @@ class VectorStore:
             ))
 
         return docs
-
-if __name__ == "__main__":
-    vector_store = VectorStore()
-    # index_data = vector_store.load_and_index_data(path="data")
-    vector_store.enable_hnsw_indexing()
-
-    question = "chứng khoán là gì?"
-
-    results = vector_store.hybrid_search(question, top_k=3, threshold=0.3)
-    print(results)
-    print("================================================================")
-
-
-    results = vector_store.search_dense(query=question, top_k=3)
-    print(results)
-
-    print("================================================================")
-
-    results = vector_store.search_sparse(query=question, top_k=3)
-    print(type(results))
-    print(results)
-
-    print("================================================================")
-    results = vector_store.search(query=question, top_k=3, threshold=0.3)
-    print(results)
     
