@@ -1,9 +1,12 @@
+import os
 import re
 import numpy as np
 from underthesea import word_tokenize
 
 stop_word = set()
-with open("res/vietnamese-stopwords.txt", "r", encoding="utf-8") as f:
+# lấy path hiện tại
+dir_path = os.path.dirname(os.path.realpath(__file__))
+with open(os.path.join(dir_path, "res/vietnamese-stopwords.txt"), "r", encoding="utf-8") as f:
     for line in f:
         word = line.strip()
         if word:   

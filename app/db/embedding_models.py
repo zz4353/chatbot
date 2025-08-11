@@ -2,13 +2,13 @@ import os
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from fastembed import SparseTextEmbedding
-from app.db.utils import preprocess_text
+from app.db._utils import preprocess_text
 
 load_dotenv() 
 
 class DenseEmbedding:
     def __init__(self, model_name=os.getenv("DENSE_MODEL")):
-        self.model = SentenceTransformer(model_name, cache_folder="models")
+        self.model = SentenceTransformer(model_name, cache_folder=os.path.join("app", "db", "models"))
 
     def encode(self, texts):
         if isinstance(texts, str):
@@ -23,7 +23,7 @@ class DenseEmbedding:
 
 class SparseEmbedding:
     def __init__(self, model_name=os.getenv("SPARSE_MODEL")):
-        self.model = SparseTextEmbedding(model_name, cache_dir="models")
+        self.model = SparseTextEmbedding(model_name, cache_dir=os.path.join("app", "db", "models"))
 
     def passage_embed(self, texts):
         if isinstance(texts, str):

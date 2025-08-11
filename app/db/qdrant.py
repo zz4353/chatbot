@@ -7,26 +7,24 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct, SparseVectorParams
 from qdrant_client.models import SparseVector, HnswConfigDiff
 from qdrant_client.models import SparseIndexParams
-from app.db.utils import normalize
-from app.db.models import dense_model, sparse_model
+from app.db._utils import normalize
+from app.db.embedding_models import dense_model, sparse_model
 
 load_dotenv() 
 
 QDRANT_CLIENT = QdrantClient(host=os.getenv("QDRANT_HOST"), port=os.getenv("QDRANT_PORT"), 
                              timeout=int(os.getenv("QDRANT_TIMEOUT")))
-DEFAULT_COLLECTION_NAME = "local_store"
 
 class VectorStore:
-    def __init__(self, collection_name=DEFAULT_COLLECTION_NAME, dense_model=dense_model, sparse_model=sparse_model, device="cpu"):
+    def __init__(self, collection_name, dense_model=dense_model, sparse_model=sparse_model):
         self.collection_name = collection_name
-        self.device = device
         self.dense_embedding_model = dense_model
         self.sparse_embedding_model = sparse_model
 
         if not QDRANT_CLIENT.collection_exists(self.collection_name):
-            self.create_collection()
+            self._create_collection()
 
-    def create_collection(self):
+    def _create_collection(self):
         QDRANT_CLIENT.create_collection(
             collection_name=self.collection_name,
             vectors_config={
@@ -47,7 +45,13 @@ class VectorStore:
             ),
         ) 
 
-    def _enable_hnsw_indexing(self):
+    def recreate_collection(self):
+        if QDRANT_CLIENT.collection_exists(self.collection_name):
+            QDRANT_CLIENT.delete_collection(self.collection_name)
+
+        self._create_collection()
+
+    def enable_hnsw_indexing(self):
         QDRANT_CLIENT.update_collection(
             collection_name=self.collection_name,
             hnsw_config=HnswConfigDiff(
@@ -55,7 +59,7 @@ class VectorStore:
             ),
         ) 
 
-    def _disable_hnsw_indexing(self):
+    def disable_hnsw_indexing(self):
         QDRANT_CLIENT.update_collection(
             collection_name=self.collection_name,
             hnsw_config=HnswConfigDiff(
@@ -98,14 +102,12 @@ class VectorStore:
 
         dense_embeddings, sparse_embeddings = self._embed_contents(contents)
 
-        self._disable_hnsw_indexing()
         self.upsert_data(
                 dense_embeddings=dense_embeddings,
                 sparse_embeddings=sparse_embeddings,
                 payload_keys=payload_keys,
                 payload_values=payload_values
             )
-        self._enable_hnsw_indexing()
 
     def upsert_data(self, dense_embeddings, sparse_embeddings, payload_keys, payload_values):
         points=[
@@ -181,7 +183,7 @@ class VectorStore:
             combined[p.id]["dense"] = p.score
 
         final = []
-        for id_, entry in combined.items():
+        for _, entry in combined.items():
             score = alpha * entry["dense"] + (1 - alpha) * entry["sparse"]
             if score >= threshold:
                 entry['point'].score = score
@@ -189,15 +191,4 @@ class VectorStore:
 
         final = sorted(final, key=lambda d: d.score, reverse=True)[:top_k]
         return final
-
-    def search(self, query, top_k=3, threshold=0.3):
-        docs = []
-        results = self.hybrid_search(query, top_k, threshold)
-        for point in results:
-            docs.append(Document(
-                page_content=point.payload["content"],
-                metadata={"score": point.score, "id": point.id}
-            ))
-
-        return docs
     
