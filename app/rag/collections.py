@@ -1,5 +1,5 @@
 from app.db.qdrant import VectorStore
-from app.embedding.embedding_models import DenseEmbedding, SparseEmbedding
+from app.embedding.models import DenseEmbedding, SparseEmbedding
 
 dense_model = DenseEmbedding()
 sparse_model = SparseEmbedding()

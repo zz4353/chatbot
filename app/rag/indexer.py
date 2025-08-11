@@ -29,6 +29,8 @@ def load_documents_from_path(path):
     return chunk_contents
 
 def _load_and_index_data(vector_store, path):
+    vector_store.recreate_collection()
+
     print(f"Indexing data from {path}...")
     files = get_files_in_directory(path)
     

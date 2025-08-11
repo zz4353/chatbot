@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from fastembed import SparseTextEmbedding
+from FlagEmbedding import FlagReranker
 from app.embedding._utils import preprocess_text
 
 load_dotenv() 
@@ -34,3 +35,11 @@ class SparseEmbedding:
             return [embedding.as_object() for embedding in self.model.passage_embed(texts)]
         else:
             raise ValueError("Input must be a string or a list of strings.")
+
+class CrossEncoderReranker:
+    def __init__(self, model_name=os.getenv("RERANKER_MODEL")):
+        self.model = FlagReranker('namdp-ptit/ViRanker',
+                        use_fp16=True, cache_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "models"))
+
+    def compute_score(self, query, doc):
+        return self.model.compute_score([query, doc], normalize=True)

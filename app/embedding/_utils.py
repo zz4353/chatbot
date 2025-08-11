@@ -1,5 +1,6 @@
 import os
 import re
+import urllib.request
 from underthesea import word_tokenize
 
 stop_word = set()
@@ -15,3 +16,4 @@ def preprocess_text(text):
     tokens = word_tokenize(text)
     tokens = [word.replace(' ', '_') for word in tokens if word not in stop_word]
     return ' '.join(tokens)
+
