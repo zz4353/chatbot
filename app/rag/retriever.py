@@ -1,4 +1,3 @@
-""" Truy vấn cụ thể collection nào thì viết vào đây """
 from langchain.schema import Document
 from app.rag.collections import COLLECTIONS
 from app.rag.reranker import rerank

@@ -1,5 +1,7 @@
 import os
 from docling.document_converter import DocumentConverter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 
 def load_pdf_file_as_markdown(path: str) -> str:
     converter = DocumentConverter()
@@ -32,3 +34,9 @@ def get_files_in_directory(path):
 
     return files
 
+def chunking(text):
+    text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+                chunk_size=512, chunk_overlap=126
+            )
+    chunks = text_splitter.split_text(text)
+    return [chunk for chunk in chunks if len(chunk) >= 40]
