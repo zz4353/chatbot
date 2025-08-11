@@ -1,7 +1,7 @@
-from app.db.qdrant import VectorStore
-from app.rag.indexer import load_and_index_data
+from app.rag.indexer import index_stock_collection
+from app.rag.retriever import search_stock_collection
 
 if __name__ == "__main__":
-    vector_store = VectorStore()
-    load_and_index_data(vector_store, "data")
-    print(vector_store.hybrid_search("chứng khoán"))
+    index_stock_collection()
+    # print(stock_collection.hybrid_search("chứng khoán"))
+    print(search_stock_collection("chứng khoán"))

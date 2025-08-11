@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 from collections import defaultdict
 import uuid
-from langchain.schema import Document
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct, SparseVectorParams
 from qdrant_client.models import SparseVector, HnswConfigDiff
