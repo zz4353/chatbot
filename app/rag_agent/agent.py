@@ -5,18 +5,23 @@ from app.rag_agent.tools.rag_search import stock_rag_search_tool
 from app.rag_agent.tools.web_search import web_search_tool
 from app.rag_agent._utils import render_prompt
 
-tools = [stock_rag_search_tool, web_search_tool]
 
-agent = initialize_agent(
-    tools=tools,
-    llm=get_llm(),
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    verbose=False,
-    handle_parsing_errors=True,
-    max_iterations=len(tools) * 2 + 1
-)
+def build_agent():
+    tools = [stock_rag_search_tool, web_search_tool]
 
-def ask_agentic_rag(prompt):
+    agent = initialize_agent(
+        tools=tools,
+        llm=get_llm(),
+        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+        verbose=False,
+        handle_parsing_errors=True,
+        max_iterations=len(tools) * 2 + 1
+    )
+    return agent
+
+agent = build_agent()
+
+def run_agentic_rag(prompt):
     try:
         prompt = render_prompt(os.path.join(os.path.realpath(__file__), "../prompts/agent_prompt.txt"), prompt)
         response = agent.invoke({"input": prompt})
