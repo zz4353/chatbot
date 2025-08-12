@@ -15,7 +15,7 @@ def build_agent():
         agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
         verbose=False,
         handle_parsing_errors=True,
-        max_iterations=len(tools) * 2 + 1
+        max_iterations=len(tools) + 3
     )
     return agent
 
