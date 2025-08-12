@@ -11,7 +11,7 @@ agent = initialize_agent(
     tools=tools,
     llm=get_llm(),
     agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    verbose=True,
+    verbose=False,
 )
 
 def ask_agentic_rag(prompt):
