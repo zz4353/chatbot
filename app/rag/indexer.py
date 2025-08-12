@@ -2,7 +2,7 @@ from app.rag._utils import get_files_in_directory, load_file_as_markdown
 from app.rag.collections import COLLECTIONS
 from app.rag._utils import chunking
 
-def preprocess_single_file(path):
+def preprocess_file(path):
     chunked_data = []
 
     # Xử lý file .docx, .txt và .pdf
@@ -24,7 +24,7 @@ def _load_and_index_data(vector_store, path):
     files = get_files_in_directory(path)
     
     for path in files:
-        chunked_data = preprocess_single_file(path)
+        chunked_data = preprocess_file(path)
         vector_store.insert_data(["content", "source"], chunked_data, [0, 1])
 
 def index_stock_collection():

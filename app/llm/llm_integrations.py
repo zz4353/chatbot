@@ -11,13 +11,12 @@ def init_openai_chat(temperature):
         model=os.getenv("CHAT_MODEL"),
         streaming=True,
         temperature=temperature,
-        model_kwargs={"stream_options": {"include_usage": True}},
     )
 
 def init_ollama_chat(temperature):
     return OllamaLLM(
         model=os.getenv("CHAT_MODEL"),
-        streaming=False,
+        streaming=True,
         temperature=temperature,
     )
 

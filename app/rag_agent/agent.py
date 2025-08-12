@@ -1,21 +1,16 @@
-import os
 from dotenv import load_dotenv
 from langchain.agents import initialize_agent, AgentType
-from langchain_openai import ChatOpenAI
+from app.llm.llm_integrations import get_llm
 from app.rag_agent.tools.rag_search import stock_rag_search_tool
 from app.rag_agent.tools.web_search import web_search_tool
 
 
 load_dotenv()
-
-llm = ChatOpenAI(model="gpt-4o-mini",
-                 openai_api_key=os.getenv("OPENAI_API_KEY"))
-
 tools = [stock_rag_search_tool, web_search_tool]
 
 agent = initialize_agent(
     tools=tools,
-    llm=llm,
+    llm=get_llm(),
     agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
     verbose=True,
     agent_kwargs={

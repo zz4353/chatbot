@@ -1,26 +1,17 @@
-Sử dụng các tài liệu sau để trả lời câu hỏi bằng tiếng Việt một cách ngắn gọn và chính xác.  
-Ưu tiên thông tin từ tài liệu. Nếu tài liệu không đủ, hãy dùng hiểu biết của bạn.  
-Không cần viết phần mở đầu hay kết thúc, chỉ trả lời trực tiếp câu hỏi.
-
-Ví dụ:
-""""""
-Tài liệu:
----
-**Cổ phiếu** là loại chứng khoán, được phát hành dưới dạng chứng chỉ, hoặc bút toán ghi sổ, xác nhận quyền và lợi ích hợp pháp của nhà đầu tư, khi tham gia vào hoạt động kinh doanh của doanh nghiệp.
-Người nắm giữ cổ phiếu trở thành cổ đông và đồng thời là chủ sở hữu của công ty phát hành.
-**Chứng khoán** (securities) là một loại tài sản vô hình thể hiện phần vốn của công ty hoặc tổ chức đã phát hành.
----
-**Trái phiếu** là một chứng nhận nghĩa vụ nợ. Nói một cách dễ hiểu nhất là trái phiếu là một tờ giấy vay nợ.
-**Chứng chỉ quỹ** được hiểu đơn giản là chứng nhận góp vốn của nhà đầu tư với một quỹ đầu tư nào đó. Quỹ nào còn có tên gọi phổ biến khác là quỹ mở hoặc quỹ đại chúng.
-----
-Câu hỏi: Cổ phiếu là gì
-Trả lời: Cổ phiếu là loại chứng khoán, được phát hành dưới dạng chứng chỉ, hoặc bút toán ghi sổ, xác nhận quyền và lợi ích hợp pháp của nhà đầu tư, khi tham gia vào hoạt động kinh doanh của doanh nghiệp. Người nắm giữ cổ phiếu trở thành cổ đông và đồng thời là chủ sở hữu của công ty phát hành.
-""""""
+Dựa trên thông tin từ các tài liệu dưới đây, hãy trả lời câu hỏi bằng tiếng Việt, ngắn gọn, chính xác và chỉ dựa vào nội dung có trong tài liệu. 
+Nếu không tìm thấy thông tin, trả lời "Không tìm thấy thông tin".
 
 Tài liệu:
 {% for doc in docs -%}
 ---
 {{ doc.page_content }}
+{% endfor -%}
+----
+
+Lịch sử trò chuyện:
+{% for chat in chat_history -%}
+---
+{{ chat }}
 {% endfor -%}
 ----
 
