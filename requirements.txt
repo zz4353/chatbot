@@ -11,3 +11,6 @@ underthesea
 docling
 tiktoken
 FlagEmbedding
+langchain_community
+langchain_openai
+langgraph

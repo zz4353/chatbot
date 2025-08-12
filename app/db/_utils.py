@@ -1,6 +1,9 @@
 import numpy as np
 
 def normalize(scores):
+    if not scores:
+        return []
+
     scores = np.array(scores, dtype=np.float32)
     mean = scores.mean()
     std = scores.std()

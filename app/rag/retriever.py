@@ -2,7 +2,7 @@ from langchain.schema import Document
 from app.rag.collections import COLLECTIONS
 from app.rag.reranker import rerank
 
-def _search(vector_store, query, top_k=3, threshold=0.3):
+def _search(vector_store, query, top_k=5, threshold=0.3):
     results = vector_store.hybrid_search(query, top_k * 2 + 1, threshold)
     results = rerank(query, results, [point.payload["content"] for point in results], top_k)
 
@@ -15,5 +15,5 @@ def _search(vector_store, query, top_k=3, threshold=0.3):
 
     return docs
 
-def search_stock_collection(query, top_k=3, threshold=0.3):
+def search_stock_collection(query, top_k=5, threshold=0.2):
     return _search(COLLECTIONS["stock"], query, top_k, threshold)
