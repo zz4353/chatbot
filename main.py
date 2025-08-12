@@ -1,4 +1,4 @@
-from app.rag_agent.agent import chatbot_agentic_rag
+from app.rag_agent.agent import ask_agentic_rag
 
 if __name__ == "__main__":
-    chatbot_agentic_rag()
+    print(ask_agentic_rag("Hướng dẫn tôi làm bánh mì trứng"))
