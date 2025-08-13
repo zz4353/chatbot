@@ -1,6 +1,6 @@
 # chatbot
 
+Package riêng: db, embedding, llm.
 
-
-pip install maturin
-pip install -r requirements.txt
+db + embedding + llm => rag
+rag + llm => rag_agent
