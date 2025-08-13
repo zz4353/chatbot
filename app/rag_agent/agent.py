@@ -3,6 +3,7 @@ from langchain.agents import initialize_agent, AgentType
 from app.llm.llm_integrations import get_llm
 from app.rag_agent.tools.rag_search import stock_rag_search_tool
 from app.rag_agent.tools.web_search import web_search_tool
+# from app.rag_agent.tools.call_api import call_api_tool
 from app.rag_agent._utils import load_prompt_sections
 
 
