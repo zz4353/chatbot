@@ -8,10 +8,10 @@ from langchain_tavily import TavilySearch
 load_dotenv()
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
-def web_search(question):
+def web_search(question, top_k=5):
     documents = []
     try:
-        search = TavilySearch(tavily_api_key=TAVILY_API_KEY, max_results=5)
+        search = TavilySearch(tavily_api_key=TAVILY_API_KEY, max_results=top_k)
         docs = search.invoke({"query": question})
         for doc in docs['results']:
             documents.append(Document(page_content=doc["content"], metadata={"title": doc["title"], "source": doc["url"]}))

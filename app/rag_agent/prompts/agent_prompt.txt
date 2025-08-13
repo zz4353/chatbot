@@ -1,2 +1,0 @@
-{{ question }}
-Vui lòng trả lời bằng tiếng Việt.
