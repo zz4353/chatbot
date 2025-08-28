@@ -1,6 +1,5 @@
 import os
 import re
-import urllib.request
 from underthesea import word_tokenize
 
 stop_word = set()
