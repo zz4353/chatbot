@@ -38,7 +38,7 @@ class SparseEmbedding:
 
 class CrossEncoderReranker:
     def __init__(self, model_name=os.getenv("RERANKER_MODEL")):
-        self.model = FlagReranker('namdp-ptit/ViRanker',
+        self.model = FlagReranker(model_name,
                         use_fp16=True, cache_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "models"))
 
     def compute_score(self, query, doc):
