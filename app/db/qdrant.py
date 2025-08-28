@@ -6,7 +6,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct, SparseVectorParams
 from qdrant_client.models import SparseVector, HnswConfigDiff
 from qdrant_client.models import SparseIndexParams
-from app.db._utils import normalize
+from app.db._utils import normalize 
 
 load_dotenv() 
 
@@ -14,10 +14,11 @@ QDRANT_CLIENT = QdrantClient(host=os.getenv("QDRANT_HOST"), port=os.getenv("QDRA
                              timeout=int(os.getenv("QDRANT_TIMEOUT")))
 
 class VectorStore:
-    def __init__(self, collection_name, dense_model, sparse_model):
+    def __init__(self, collection_name, dense_model, sparse_model, cross_encoder):
         self.collection_name = collection_name
         self.dense_embedding_model = dense_model
         self.sparse_embedding_model = sparse_model
+        self.cross_encoder = cross_encoder
 
         if not QDRANT_CLIENT.collection_exists(self.collection_name):
             self._create_collection()
@@ -161,12 +162,12 @@ class VectorStore:
         return [point for point in results if point.score >= threshold]
 
     def hybrid_search(self, query, top_k=3, threshold=0.3, alpha=0.7):
-        dense_results = self._search_dense(query, top_k * 3 + 1)
+        dense_results = self._search_dense(query, top_k * 2 + 1)
         dense_scores = normalize([point.score for point in dense_results])
         for i, point in enumerate(dense_results):
             point.score = dense_scores[i]
 
-        sparse_results = self._search_sparse(query, top_k * 3 + 1)
+        sparse_results = self._search_sparse(query, top_k * 2 + 1)
         sparse_scores = normalize([point.score for point in sparse_results])
         for i, point in enumerate(sparse_results):
             point.score = sparse_scores[i]
@@ -189,4 +190,13 @@ class VectorStore:
 
         final = sorted(final, key=lambda d: d.score, reverse=True)[:top_k]
         return final
+
+    def _rerank(self, query, points, top_k):
+        scores = [self.cross_encoder.compute_score(query, str(point.payload)) for point in points]
+        ranked  = sorted(zip(points, scores), key=lambda x: x[1], reverse=True)[:top_k]
+        return [item for item, _ in ranked]
     
+    def search(self, query, top_k=5, threshold=0.3):
+        results = self.hybrid_search(query, top_k * 2 + 1, threshold)
+        results = self._rerank(query, results, top_k)
+        return results

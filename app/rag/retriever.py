@@ -1,10 +1,8 @@
 from langchain.schema import Document
 from app.rag.collections import COLLECTIONS
-from app.rag.reranker import rerank
 
 def _search(vector_store, query, top_k=5, threshold=0.3):
-    results = vector_store.hybrid_search(query, top_k * 2 + 1, threshold)
-    results = rerank(query, results, [point.payload["content"] for point in results], top_k)
+    results = vector_store.search(query, top_k, threshold)
 
     docs = []
     for point in results:
