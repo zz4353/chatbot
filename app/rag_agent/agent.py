@@ -1,5 +1,6 @@
 import os
 from langchain.agents import initialize_agent, AgentType
+from torch import chunk
 from app.llm.llm_integrations import get_llm
 from app.rag_agent.tools.rag_search import stock_rag_search_tool
 from app.rag_agent.tools.web_search import web_search_tool
@@ -30,10 +31,8 @@ zero_shot_agent = build_zero_shot_agent()
 
 def run_agentic_rag(prompt):
     try:
-        response = zero_shot_agent.invoke({"input": prompt})
-        return response["output"]
+       response = zero_shot_agent.invoke({"input": prompt})
+       return response["output"]
     except Exception as e:
-        print(f"Error occurred: {e}")
-        return "Xin lỗi, đã xảy ra lỗi trong quá trình xử lý yêu cầu của bạn."
-    
-
+       print(f"Error occurred: {e}")
+       return "Xin lỗi, đã xảy ra lỗi trong quá trình xử lý yêu cầu của bạn."
